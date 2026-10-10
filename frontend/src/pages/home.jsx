@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import BlogCard from "../components/BlogCard";
 
 function Home() {
   const [blogs, setBlogs] = useState([]);
@@ -55,7 +56,6 @@ function Home() {
   const handleSearch = (event) => {
     event.preventDefault();
 
-    // Search should start from page 1
     if (page !== 1) {
       setPage(1);
       return;
@@ -169,23 +169,16 @@ function Home() {
 
       {!loading &&
         !error &&
-        blogs.map((blog) => (
-          <div key={blog._id}>
-            <Link to={`/blog/${blog._id}`}>
-              <h2>{blog.title}</h2>
-            </Link>
-
-            <p>{blog.content}</p>
-
-            {blog.author && (
-              <p>
-                By {blog.author.username}
-              </p>
-            )}
-
-            <hr />
+        blogs.length > 0 && (
+          <div>
+            {blogs.map((blog) => (
+              <BlogCard
+                key={blog._id}
+                blog={blog}
+              />
+            ))}
           </div>
-        ))}
+        )}
 
       {!loading &&
         !error &&
