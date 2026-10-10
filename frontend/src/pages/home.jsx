@@ -6,12 +6,16 @@ function Home() {
   const [blogs, setBlogs] = useState([]);
 
   const [page, setPage] = useState(1);
+
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     hasNextPage: false,
     hasPreviousPage: false,
   });
+
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,6 +31,8 @@ function Home() {
         params: {
           page,
           limit: 6,
+          search,
+          sort,
         },
       });
 
@@ -44,7 +50,24 @@ function Home() {
 
   useEffect(() => {
     getBlogs();
-  }, [page]);
+  }, [page, sort]);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+
+    // Search should start from page 1
+    if (page !== 1) {
+      setPage(1);
+      return;
+    }
+
+    getBlogs();
+  };
+
+  const handleSortChange = (event) => {
+    setSort(event.target.value);
+    setPage(1);
+  };
 
   const handlePrevious = () => {
     if (pagination.hasPreviousPage) {
@@ -90,6 +113,38 @@ function Home() {
         </button>
       </div>
 
+      <hr />
+
+      <form onSubmit={handleSearch}>
+        <input
+          type="text"
+          placeholder="Search blogs..."
+          value={search}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
+        />
+
+        <button type="submit">
+          Search
+        </button>
+
+        <select
+          value={sort}
+          onChange={handleSortChange}
+        >
+          <option value="newest">
+            Newest
+          </option>
+
+          <option value="oldest">
+            Oldest
+          </option>
+        </select>
+      </form>
+
+      <hr />
+
       {loading && <p>Loading blogs...</p>}
 
       {error && (
@@ -102,9 +157,15 @@ function Home() {
         </div>
       )}
 
-      {!loading && !error && blogs.length === 0 && (
-        <p>No blogs found.</p>
-      )}
+      {!loading &&
+        !error &&
+        blogs.length === 0 && (
+          <p>
+            {search
+              ? `No blogs found for "${search}".`
+              : "No blogs found."}
+          </p>
+        )}
 
       {!loading &&
         !error &&
@@ -115,32 +176,44 @@ function Home() {
             </Link>
 
             <p>{blog.content}</p>
+
+            {blog.author && (
+              <p>
+                By {blog.author.username}
+              </p>
+            )}
+
+            <hr />
           </div>
         ))}
 
-      {!loading && !error && blogs.length > 0 && (
-        <div>
-          <button
-            onClick={handlePrevious}
-            disabled={!pagination.hasPreviousPage}
-          >
-            ← Previous
-          </button>
+      {!loading &&
+        !error &&
+        blogs.length > 0 && (
+          <div>
+            <button
+              onClick={handlePrevious}
+              disabled={
+                !pagination.hasPreviousPage
+              }
+            >
+              ← Previous
+            </button>
 
-          <span>
-            {" "}
-            Page {pagination.currentPage} of{" "}
-            {pagination.totalPages}{" "}
-          </span>
+            <span>
+              {" "}
+              Page {pagination.currentPage} of{" "}
+              {pagination.totalPages}{" "}
+            </span>
 
-          <button
-            onClick={handleNext}
-            disabled={!pagination.hasNextPage}
-          >
-            Next →
-          </button>
-        </div>
-      )}
+            <button
+              onClick={handleNext}
+              disabled={!pagination.hasNextPage}
+            >
+              Next →
+            </button>
+          </div>
+        )}
     </div>
   );
 }
