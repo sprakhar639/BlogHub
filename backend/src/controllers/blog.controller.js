@@ -1,5 +1,9 @@
 const blogModel = require("../models/blog.model");
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function createBlog(req, res, next) {
   try {
     const { title, content } = req.body;
@@ -25,12 +29,13 @@ async function getAllBlogs(req, res, next) {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
 
-    // Prevent invalid values
+    const search = req.query.search?.trim() || "";
+    const sortOption = req.query.sort || "newest";
+
     if (page < 1) {
       page = 1;
     }
 
-   
     if (limit < 1) {
       limit = 10;
     }
@@ -39,16 +44,45 @@ async function getAllBlogs(req, res, next) {
       limit = 50;
     }
 
+    const filter = {};
+
+    if (search) {
+      const safeSearch = escapeRegex(search);
+
+      filter.$or = [
+        {
+          title: {
+            $regex: safeSearch,
+            $options: "i",
+          },
+        },
+        {
+          content: {
+            $regex: safeSearch,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    const sort =
+      sortOption === "oldest"
+        ? { createdAt: 1 }
+        : { createdAt: -1 };
+
     const skip = (page - 1) * limit;
 
     const [blogs, totalBlogs] = await Promise.all([
       blogModel
-        .find()
+        .find(filter)
+        .populate("author", "username")
+        .select("title content author createdAt updatedAt")
+        .sort(sort)
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 }),
+        .lean(),
 
-      blogModel.countDocuments(),
+      blogModel.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(totalBlogs / limit);
@@ -63,6 +97,10 @@ async function getAllBlogs(req, res, next) {
         totalPages,
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1,
+      },
+      filters: {
+        search,
+        sort: sortOption === "oldest" ? "oldest" : "newest",
       },
     });
   } catch (error) {
@@ -106,6 +144,7 @@ async function updateBlogById(req, res, next) {
       },
       {
         new: true,
+        runValidators: true,
       }
     );
 
