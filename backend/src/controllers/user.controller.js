@@ -2,7 +2,9 @@ const userModel = require("../models/user.model");
 
 async function getMyProfile(req, res, next) {
   try {
-    const user = await userModel.findById(req.user.id);
+    const user = await userModel
+      .findById(req.user.id)
+      .select("-password");
 
     if (!user) {
       return res.status(404).json({
@@ -11,6 +13,7 @@ async function getMyProfile(req, res, next) {
     }
 
     res.status(200).json({
+      message: "Profile fetched successfully",
       user,
     });
   } catch (error) {
@@ -18,18 +21,6 @@ async function getMyProfile(req, res, next) {
   }
 }
 
-async function getUser(req, res, next) {
-  try {
-    const id = req.params.id;
-    const user = await userModel.findById(id);
-
-    if (!user) {
-      return res.status(200).json({ message: "User Not Found" });
-    }
-    res.status(200).json({ messsage: "Got user", user });
-  } catch (error) {
-    next(error);
-  }
-}
-
-module.exports = { getMyProfile, getUser };
+module.exports = {
+  getMyProfile,
+};
