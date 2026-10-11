@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
+  const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await api.post("/auth/logout");
+      await logout();
       navigate("/login");
     } catch (error) {
       alert(
@@ -15,6 +16,16 @@ function Navbar() {
       );
     }
   };
+
+  if (loading) {
+    return (
+      <nav>
+        <Link to="/">
+          <h2>BlogSpace</h2>
+        </Link>
+      </nav>
+    );
+  }
 
   return (
     <nav>
@@ -25,27 +36,41 @@ function Navbar() {
       </div>
 
       <div>
-        <Link to="/">
-          Home
-        </Link>
+        <Link to="/">Home</Link>
 
         {" | "}
 
-        <Link to="/CreateBlog">
-          Create Blog
-        </Link>
+        {user ? (
+          <>
+            <Link to="/CreateBlog">
+              Create Blog
+            </Link>
 
-        {" | "}
+            {" | "}
 
-        <Link to="/MyProfile">
-          Profile
-        </Link>
+            <Link to="/MyProfile">
+              Profile
+            </Link>
 
-        {" | "}
+            {" | "}
 
-        <button onClick={handleLogout}>
-          Logout
-        </button>
+            <button onClick={handleLogout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login">
+              Login
+            </Link>
+
+            {" | "}
+
+            <Link to="/register">
+              Register
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );
