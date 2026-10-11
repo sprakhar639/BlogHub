@@ -6,20 +6,21 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 150,
+      minlength: 3,
+      maxlength: 200,
     },
 
     content: {
       type: String,
       required: true,
       trim: true,
+      minlength: 10,
     },
 
     author: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: "User",
       required: true,
-      index: true,
     },
   },
   {
@@ -28,8 +29,6 @@ const blogSchema = new mongoose.Schema(
 );
 
 blogSchema.index({ createdAt: -1 });
-
-
 blogSchema.index({ author: 1, createdAt: -1 });
 
 const blogModel = mongoose.model("Blog", blogSchema);
