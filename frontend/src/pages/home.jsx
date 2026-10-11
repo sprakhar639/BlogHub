@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import BlogCard from "../components/BlogCard";
 
 function Home() {
   const [blogs, setBlogs] = useState([]);
-
   const [page, setPage] = useState(1);
 
   const [pagination, setPagination] = useState({
@@ -20,8 +18,6 @@ function Home() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const navigate = useNavigate();
 
   const getBlogs = async () => {
     try {
@@ -81,37 +77,9 @@ function Home() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const response = await api.post("/auth/logout");
-
-      alert(response.data.message);
-      navigate("/login");
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          error.message
-      );
-    }
-  };
-
   return (
     <div>
       <h1>All Blogs</h1>
-
-      <div>
-        <Link to="/MyProfile">
-          <button>Profile</button>
-        </Link>
-
-        <Link to="/CreateBlog">
-          <button>Create Blog</button>
-        </Link>
-
-        <button onClick={handleLogout}>
-          Log Out
-        </button>
-      </div>
 
       <hr />
 
@@ -186,9 +154,7 @@ function Home() {
           <div>
             <button
               onClick={handlePrevious}
-              disabled={
-                !pagination.hasPreviousPage
-              }
+              disabled={!pagination.hasPreviousPage}
             >
               ← Previous
             </button>
