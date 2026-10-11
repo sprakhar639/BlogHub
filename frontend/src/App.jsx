@@ -7,49 +7,29 @@ import BlogDetails from "./pages/blogDetails";
 import CreateBlog from "./pages/createBlog";
 import EditBlog from "./pages/editBlog";
 import MyProfile from "./pages/getMyProfile";
+
 import Navbar from "./components/Navbar";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
 
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-
-          <Route
-            path="/login"
-            element={<Login />}
-          />
-
-          <Route
-            path="/register"
-            element={<Register />}
-          />
-
-          <Route
-            path="/blog/:id"
-            element={<BlogDetails />}
-          />
-
-          <Route
-            path="/CreateBlog"
-            element={<CreateBlog />}
-          />
-
-          <Route
-            path="/EditBlog/:id"
-            element={<EditBlog />}
-          />
-
-          <Route
-            path="/MyProfile"
-            element={<MyProfile />}
-          />
-        </Routes>
-      </main>
-    </BrowserRouter>
+        <main>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/blog/:id" element={<BlogDetails />} />
+            <Route path="/CreateBlog" element={<CreateBlog />} />
+            <Route path="/EditBlog/:id" element={<EditBlog />} />
+            <Route path="/MyProfile" element={<MyProfile />} />
+          </Routes>
+        </main>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
