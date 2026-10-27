@@ -2,132 +2,55 @@ const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const COOKIE_OPTIONS = {
+const cookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
-};
-
+  path: "/",
+});
 function createToken(userId) {
-  return jwt.sign(
-    {
-      id: userId,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "7d",
-    }
-  );
+  if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not configured");
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
-
+function safeUser(user) {
+  const obj = user.toObject();
+  delete obj.password;
+  return obj;
+}
 async function registerUser(req, res, next) {
   try {
-    const { username, email, password } = req.body;
-
-    const isUserAlreadyExists = await userModel.findOne({
-      $or: [{ username }, { email }],
-    });
-
-    if (isUserAlreadyExists) {
-      if (isUserAlreadyExists.username === username) {
-        return res.status(409).json({
-          message: "Username already exists",
-        });
-      }
-
-      if (isUserAlreadyExists.email === email) {
-        return res.status(409).json({
-          message: "Email already exists",
-        });
-      }
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-
-    const user = await userModel.create({
-      username,
-      email,
-      password: hash,
-    });
-
-    const token = createToken(user._id);
-
-    res.cookie("token", token, COOKIE_OPTIONS);
-
-    const userObj = user.toObject();
-    delete userObj.password;
-
-    res.status(201).json({
-      message: "User registered successfully",
-      user: userObj,
-    });
-  } catch (error) {
-    next(error);
-  }
+    const username = req.body.username.trim();
+    const email = req.body.email.trim().toLowerCase();
+    const { password } = req.body;
+    const existing = await userModel.findOne({ $or: [{ username }, { email }] });
+    if (existing) return res.status(409).json({ message: existing.username === username ? "Username already exists" : "Email already exists" });
+    const user = await userModel.create({ username, email, password: await bcrypt.hash(password, 12) });
+    res.cookie("token", createToken(user._id), cookieOptions());
+    return res.status(201).json({ message: "Account created successfully", user: safeUser(user) });
+  } catch (error) { return next(error); }
 }
-
 async function loginUser(req, res, next) {
   try {
-    const { username, email, password } = req.body;
-
-    const user = await userModel
-      .findOne({
-        $or: [{ username }, { email }],
-      })
-      .select("+password");
-
-    if (!user) {
-      return res.status(401).json({
-        message: "User does not exist",
-      });
+    const identifier = String(req.body.email || req.body.username || "").trim();
+    const query = identifier.includes("@") ? { email: identifier.toLowerCase() } : { username: identifier };
+    const user = await userModel.findOne(query).select("+password");
+    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+      return res.status(401).json({ message: "Invalid username/email or password" });
     }
-
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        message: "Wrong password",
-      });
-    }
-
-    const token = createToken(user._id);
-
-    res.cookie("token", token, COOKIE_OPTIONS);
-
-    const userObj = user.toObject();
-    delete userObj.password;
-
-    res.status(200).json({
-      message: "Logged in successfully",
-      user: userObj,
-    });
-  } catch (error) {
-    next(error);
-  }
+    res.cookie("token", createToken(user._id), cookieOptions());
+    return res.json({ message: "Welcome back", user: safeUser(user) });
+  } catch (error) { return next(error); }
 }
-
-async function logOutUser(req, res, next) {
+function logOutUser(_req, res) {
+  res.clearCookie("token", { ...cookieOptions(), maxAge: undefined });
+  return res.json({ message: "Logged out successfully" });
+}
+async function getCurrentUser(req, res, next) {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-
-    res.status(200).json({
-      message: "Logged out successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
+    const user = await userModel.findById(req.user.id).select("-password");
+    if (!user) return res.status(401).json({ message: "Account not found" });
+    return res.json({ user });
+  } catch (error) { return next(error); }
 }
-
-module.exports = {
-  registerUser,
-  loginUser,
-  logOutUser,
-};
+module.exports = { registerUser, loginUser, logOutUser, getCurrentUser };

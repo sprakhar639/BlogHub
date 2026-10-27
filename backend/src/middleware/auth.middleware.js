@@ -1,36 +1,13 @@
 const jwt = require("jsonwebtoken");
-
-async function authMiddleware(req, res, next) {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({
-      message: "Authentication required",
-    });
-  }
-
+function authMiddleware(req, res, next) {
+  const token = req.cookies?.token;
+  if (!token) return res.status(401).json({ message: "Authentication required. Please log in." });
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    req.user = decoded;
-
-    next();
+    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not configured");
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
   } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        message: "Session expired. Please login again",
-      });
-    }
-
-    return res.status(401).json({
-      message: "Invalid authentication token",
-    });
+    return res.status(401).json({ message: error.name === "TokenExpiredError" ? "Session expired. Please log in again." : "Invalid authentication token" });
   }
 }
-
-module.exports = {
-  authMiddleware,
-};
+module.exports = { authMiddleware };

@@ -1,192 +1,63 @@
+const mongoose = require("mongoose");
 const blogModel = require("../models/blog.model");
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+function escapeRegex(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 
 async function createBlog(req, res, next) {
   try {
-    const { title, content } = req.body;
-    const author = req.user.id;
-
-    const blog = await blogModel.create({
-      title,
-      content,
-      author,
-    });
-
-    res.status(201).json({
-      message: "Blog Created Successfully",
-      blog,
-    });
-  } catch (error) {
-    next(error);
-  }
+    const blog = await blogModel.create({ title: req.body.title.trim(), content: req.body.content.trim(), author: req.user.id });
+    await blog.populate("author", "username");
+    return res.status(201).json({ message: "Story published", blog });
+  } catch (error) { return next(error); }
 }
-
 async function getAllBlogs(req, res, next) {
   try {
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
-
-    const search = req.query.search?.trim() || "";
-    const sortOption = req.query.sort || "newest";
-
-    if (page < 1) {
-      page = 1;
-    }
-
-    if (limit < 1) {
-      limit = 10;
-    }
-
-    if (limit > 50) {
-      limit = 50;
-    }
-
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(24, Math.max(1, Number.parseInt(req.query.limit, 10) || 9));
+    const search = String(req.query.search || "").trim().slice(0, 100);
+    const sortOption = req.query.sort === "oldest" ? "oldest" : "newest";
     const filter = {};
-
     if (search) {
-      const safeSearch = escapeRegex(search);
-
-      filter.$or = [
-        {
-          title: {
-            $regex: safeSearch,
-            $options: "i",
-          },
-        },
-        {
-          content: {
-            $regex: safeSearch,
-            $options: "i",
-          },
-        },
-      ];
+      const safe = escapeRegex(search);
+      filter.$or = [{ title: { $regex: safe, $options: "i" } }, { content: { $regex: safe, $options: "i" } }];
     }
-
-    const sort =
-      sortOption === "oldest"
-        ? { createdAt: 1 }
-        : { createdAt: -1 };
-
-    const skip = (page - 1) * limit;
-
     const [blogs, totalBlogs] = await Promise.all([
-      blogModel
-        .find(filter)
-        .populate("author", "username")
-        .select("title content author createdAt updatedAt")
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-
+      blogModel.find(filter).populate("author", "username").select("title content author createdAt updatedAt")
+        .sort({ createdAt: sortOption === "oldest" ? 1 : -1 }).skip((page - 1) * limit).limit(limit).lean(),
       blogModel.countDocuments(filter),
     ]);
-
-    const totalPages = Math.ceil(totalBlogs / limit);
-
-    res.status(200).json({
-      message: "All blogs fetched successfully",
-      blogs,
-      pagination: {
-        currentPage: page,
-        limit,
-        totalBlogs,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-      filters: {
-        search,
-        sort: sortOption === "oldest" ? "oldest" : "newest",
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
+    const totalPages = Math.max(1, Math.ceil(totalBlogs / limit));
+    return res.json({ blogs, pagination: { currentPage: page, limit, totalBlogs, totalPages, hasNextPage: page < totalPages, hasPreviousPage: page > 1 } });
+  } catch (error) { return next(error); }
 }
-
 async function getBlogById(req, res, next) {
   try {
-    const { id } = req.params;
-
-    const blog = await blogModel
-      .findById(id)
-      .populate("author", "username");
-
-    if (!blog) {
-      return res.status(404).json({
-        message: "Cannot find blog",
-      });
-    }
-
-    res.status(200).json({
-      message: "Blog by id fetched successfully",
-      blog,
-    });
-  } catch (error) {
-    next(error);
-  }
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: "Story not found" });
+    const blog = await blogModel.findById(req.params.id).populate("author", "username");
+    if (!blog) return res.status(404).json({ message: "Story not found" });
+    return res.json({ blog });
+  } catch (error) { return next(error); }
 }
-
 async function updateBlogById(req, res, next) {
   try {
-    const { title, content } = req.body;
-    const { id } = req.params;
-
-    const blog = await blogModel.findByIdAndUpdate(
-      id,
-      {
-        title,
-        content,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    if (!blog) {
-      return res.status(404).json({
-        message: "Blog not found",
-      });
-    }
-
-    res.status(200).json({
-      message: "Blog Updated Successfully",
-      blog,
-    });
-  } catch (error) {
-    next(error);
-  }
+    const updates = {};
+    if (req.body.title !== undefined) updates.title = req.body.title.trim();
+    if (req.body.content !== undefined) updates.content = req.body.content.trim();
+    const blog = await blogModel.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).populate("author", "username");
+    if (!blog) return res.status(404).json({ message: "Story not found" });
+    return res.json({ message: "Story updated", blog });
+  } catch (error) { return next(error); }
 }
-
 async function deleteBlogById(req, res, next) {
   try {
-    const { id } = req.params;
-
-    const blog = await blogModel.findByIdAndDelete(id);
-
-    if (!blog) {
-      return res.status(404).json({
-        message: "Blog not found",
-      });
-    }
-
-    res.status(200).json({
-      message: "Blog deleted Successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
+    const blog = await blogModel.findByIdAndDelete(req.params.id);
+    if (!blog) return res.status(404).json({ message: "Story not found" });
+    return res.json({ message: "Story deleted" });
+  } catch (error) { return next(error); }
 }
-
-module.exports = {
-  createBlog,
-  getAllBlogs,
-  getBlogById,
-  updateBlogById,
-  deleteBlogById,
-};
+async function getMyBlogs(req, res, next) {
+  try {
+    const blogs = await blogModel.find({ author: req.user.id }).populate("author", "username").sort({ createdAt: -1 }).lean();
+    return res.json({ blogs });
+  } catch (error) { return next(error); }
+}
+module.exports = { createBlog, getAllBlogs, getBlogById, updateBlogById, deleteBlogById, getMyBlogs };

@@ -1,8 +1,1 @@
-.edit-button {
-  display: inline-block;
-  padding: 8px 16px;
-  background-color: black;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-}
+/* Component styles live in index.css to keep the design system centralized. */

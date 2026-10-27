@@ -1,39 +1,14 @@
 const express = require("express");
-const blogController = require("../controllers/blog.controller");
-const authMiddleware = require("../middleware/auth.middleware");
-const blogOwnerMiddleware = require("../middleware/blogOwner.middleware");
-const {
-  createValidation,
-  updateValidation,
-} = require("../validation/blog.validation");
-
+const controller = require("../controllers/blog.controller");
+const { authMiddleware } = require("../middleware/auth.middleware");
+const { blogOwnerUser } = require("../middleware/blogOwner.middleware");
+const { createValidation, updateValidation } = require("../validation/blog.validation");
 const router = express.Router();
 
-// Public routes
-router.get("/", blogController.getAllBlogs);
-router.get("/:id", blogController.getBlogById);
-
-// Protected routes
-router.post(
-  "/",
-  authMiddleware.authMiddleware,
-  createValidation,
-  blogController.createBlog
-);
-
-router.put(
-  "/:id",
-  authMiddleware.authMiddleware,
-  updateValidation,
-  blogOwnerMiddleware.blogOwnerUser,
-  blogController.updateBlogById
-);
-
-router.delete(
-  "/:id",
-  authMiddleware.authMiddleware,
-  blogOwnerMiddleware.blogOwnerUser,
-  blogController.deleteBlogById
-);
-
+router.get("/", controller.getAllBlogs);
+router.get("/mine", authMiddleware, controller.getMyBlogs);
+router.get("/:id", controller.getBlogById);
+router.post("/", authMiddleware, createValidation, controller.createBlog);
+router.put("/:id", authMiddleware, updateValidation, blogOwnerUser, controller.updateBlogById);
+router.delete("/:id", authMiddleware, blogOwnerUser, controller.deleteBlogById);
 module.exports = router;
