@@ -1,7 +1,14 @@
 const express = require("express");
-const blogController = require("../controllers/blog.controller");
-const authMiddleware = require("../middleware/auth.middleware");
-const blogOwnerMiddleware = require("../middleware/blogOwner.middleware");
+
+const controller = require("../controllers/blog.controller");
+
+const {
+  authMiddleware,
+  optionalAuthMiddleware,
+} = require("../middleware/auth.middleware");
+
+const { blogOwnerUser } = require("../middleware/blogOwner.middleware");
+
 const {
   createValidation,
   updateValidation,
@@ -9,31 +16,27 @@ const {
 
 const router = express.Router();
 
-// Public routes
-router.get("/", blogController.getAllBlogs);
-router.get("/:id", blogController.getBlogById);
+router.get("/", optionalAuthMiddleware, controller.getAllBlogs);
 
-// Protected routes
-router.post(
-  "/",
-  authMiddleware.authMiddleware,
-  createValidation,
-  blogController.createBlog
-);
+router.get("/mine", authMiddleware, controller.getMyBlogs);
+
+router.get("/:id", optionalAuthMiddleware, controller.getBlogById);
+
+
+router.post("/:id/like", authMiddleware, controller.likeBlog);
+
+router.delete("/:id/like", authMiddleware, controller.unlikeBlog);
+
+router.post("/", authMiddleware, createValidation, controller.createBlog);
 
 router.put(
   "/:id",
-  authMiddleware.authMiddleware,
+  authMiddleware,
   updateValidation,
-  blogOwnerMiddleware.blogOwnerUser,
-  blogController.updateBlogById
+  blogOwnerUser,
+  controller.updateBlogById,
 );
 
-router.delete(
-  "/:id",
-  authMiddleware.authMiddleware,
-  blogOwnerMiddleware.blogOwnerUser,
-  blogController.deleteBlogById
-);
+router.delete("/:id", authMiddleware, blogOwnerUser, controller.deleteBlogById);
 
 module.exports = router;

@@ -22,10 +22,21 @@ const blogSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    likes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+    },
   },
+
   {
     timestamps: true,
-  }
+  },
 );
 
 blogSchema.index({ createdAt: -1 });

@@ -1,70 +1,17 @@
 function validationRegister(req, res, next) {
-  const { username, email, password } = req.body;
-
-  if (!username || !email) {
-    return res.status(400).json({ message: "Username and email are required" });
+  const { username, email, password } = req.body || {};
+  if (typeof username !== "string" || username.trim().length < 3 || username.trim().length > 24 || !/^[a-zA-Z0-9_]+$/.test(username.trim())) {
+    return res.status(400).json({ message: "Username must be 3–24 characters (letters, numbers, underscores)" });
   }
-
-  if (!email.includes("@") || !email.includes(".")) {
-    return res.status(400).json({
-      message: "Invalid email",
-    });
-  }
-
-  if (username.length < 3 || username.length > 8) {
-    return res
-      .status(400)
-      .json({ message: "Username must be greater than 3 and less than 8 character" });
-  }
-
- 
-  if (!password) {
-    return res.status(400).json({ message: "Password required" });
-  }
-
-  if (password.length < 8) {
-    return res
-      .status(400)
-      .json({ message: "Minimum password length 8 character" });
-  }
-
-  next();
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: "Enter a valid email address" });
+  if (typeof password !== "string" || password.length < 8) return res.status(400).json({ message: "Password must be at least 8 characters" });
+  return next();
 }
-
 function validationLogin(req, res, next) {
-  const { username, email, password } = req.body;
-  if (!username && !email) {
-    return res.status(400).json({ message: "Username or email Required" });
+  const identifier = req.body?.email || req.body?.username;
+  if (typeof identifier !== "string" || !identifier.trim() || typeof req.body?.password !== "string" || !req.body.password) {
+    return res.status(400).json({ message: "Enter your username/email and password" });
   }
-
-  if (username && username.length < 3) {
-    return res
-      .status(400)
-      .json({ message: "Username must be atleast 3 character" });
-  }
-  if (username && username.length > 8) {
-    return res
-      .status(400)
-      .json({ message: "Username must be less than 8 character" });
-  }
-
-  if (email && (!email.includes("@") || !email.includes("."))) {
-    return res.status(400).json({
-      message: "Invalid email",
-    });
-  }
-
-  if (!password) {
-    return res.status(400).json({ message: "Password Required" });
-  }
-
-  if (password.length < 8) {
-    return res
-      .status(400)
-      .json({ message: "Password must be atleast 8 character" });
-  }
-
-  next();
+  return next();
 }
-
 module.exports = { validationRegister, validationLogin };
