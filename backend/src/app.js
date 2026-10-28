@@ -1,3 +1,4 @@
+const connectDB = require("./db/db");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -8,13 +9,20 @@ const { errorHandler } = require("./middleware/error.middleware");
 
 const app = express();
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
-  .split(",").map((origin) => origin.trim());
+  .split(",")
+  .map((origin) => origin.trim());
 
 app.disable("x-powered-by");
-app.use(cors({ origin: (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-  return callback(new Error("Origin is not allowed by CORS"));
-}, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin))
+        return callback(null, true);
+      return callback(new Error("Origin is not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
@@ -33,8 +41,15 @@ function authRateLimit(req, res, next) {
   }
   entry.count += 1;
   if (entry.count > maxAttempts) {
-    res.set("Retry-After", String(Math.ceil((windowMs - (now - entry.start)) / 1000)));
-    return res.status(429).json({ message: "Too many authentication attempts. Please try again later." });
+    res.set(
+      "Retry-After",
+      String(Math.ceil((windowMs - (now - entry.start)) / 1000)),
+    );
+    return res
+      .status(429)
+      .json({
+        message: "Too many authentication attempts. Please try again later.",
+      });
   }
   // Keep the map bounded and remove expired entries occasionally.
   if (authAttempts.size > 5000) {
@@ -47,7 +62,33 @@ function authRateLimit(req, res, next) {
 app.use("/api/auth/login", authRateLimit);
 app.use("/api/auth/register", authRateLimit);
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "BlogHub API" }));
+app.get("/api/health", (_req, res) =>
+  res.json({ status: "ok", service: "BlogHub API" }),
+);
+
+
+let dbConnectionPromise;
+
+app.use(async (req, res, next) => {
+  try {
+    if (!dbConnectionPromise) {
+      dbConnectionPromise = connectDB().catch((error) => {
+        dbConnectionPromise = null;
+        throw error;
+      });
+    }
+
+    await dbConnectionPromise;
+    next();
+  } catch (error) {
+    console.error("Database initialization failed:", error.message);
+
+    res.status(503).json({
+      message: "Database temporarily unavailable",
+    });
+  }
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/blog", blogRoutes);
 app.use("/api/user", userRoutes);
