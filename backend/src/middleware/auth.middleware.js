@@ -27,7 +27,7 @@ async function authMiddleware(req, res, next) {
     // A signed token is not enough: confirm the account still exists.
     const user = await userModel.findById(payload.id).select("_id");
     if (!user) {
-      res.clearCookie("token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/" });
+      res.clearCookie("token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none", path: "/" });
       return res.status(401).json({ message: "Account no longer exists. Please log in again." });
     }
     req.user = { id: user._id.toString() };
