@@ -7,12 +7,12 @@ import ErrorMessage from "../components/ErrorMessage";
 import Pagination from "../components/Pagination";
 import { useAuth } from "../context/auth-context";
 
+
+
 export default function Home() {
   const { user } = useAuth();
-
   const [blogs, setBlogs] = useState([]);
   const [page, setPage] = useState(1);
-
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -20,11 +20,9 @@ export default function Home() {
     hasNextPage: false,
     hasPreviousPage: false,
   });
-
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
@@ -35,48 +33,30 @@ export default function Home() {
     async function loadBlogs() {
       try {
         const { data } = await api.get("/blog", {
-          params: {
-            page,
-            limit: 9,
-            search,
-            sort,
-          },
+          params: { page, limit: 9, search, sort },
         });
-
         if (!cancelled) {
           setBlogs(data.blogs || []);
-
-          setPagination(
-            data.pagination || {
-              currentPage: 1,
-              totalPages: 1,
-              totalBlogs: 0,
-              hasNextPage: false,
-              hasPreviousPage: false,
-            },
-          );
-
+          setPagination(data.pagination || {
+            currentPage: 1,
+            totalPages: 1,
+            totalBlogs: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          });
           setError("");
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err.response?.data?.message ||
-              "Could not load stories. Check that the API and database are running.",
-          );
+          setError(err.response?.data?.message || "Could not load stories. Check that the API and database are running.");
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadBlogs();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [page, search, sort, retryCount]);
 
   function submitSearch(event) {
@@ -85,127 +65,69 @@ export default function Home() {
     setSearch(searchInput.trim());
   }
 
+ 
   return (
-    <div className="page-wrap">
-      {" "}
-      <section className="hero">
-        {" "}
-        <div className="hero-copy">
-          {" "}
-          <div className="eyebrow">
-            {" "}
-            <span className="eyebrow-dot" /> A HOME FOR CURIOUS MINDS{" "}
-          </div>
-          <h1>
-            Good ideas
-            <br />
-            deserve <em>to be read.</em>
-          </h1>
+    <main className="page-wrap glass-home">
+      <div className="glass-background-dots" aria-hidden="true" />
+      <section className="hero glass-hero">
+        <div className="hero-copy glass-hero-copy">
+          <div className="glass-hero-kicker"><span /> A HOME FOR CURIOUS MINDS</div>
+          <h1>Share ideas<br />that <em>matter.</em></h1>
           <p className="hero-subtitle">
-            Thoughtful stories from people figuring things out. Read something
-            new, or share what you’ve learned.
+            Discover insightful stories, technical deep dives, and<br className="desktop-break" /> fresh perspectives from developers around the world.
           </p>
-          <div className="hero-cta">
-            <a href="#stories" className="button button-dark">
-              Explore stories <span>↓</span>
-            </a>
 
-            {user ? (
-              <Link to="/create" className="button button-soft">
-                Write your own ↗
-              </Link>
-            ) : (
-              <Link to="/register" className="button button-soft">
-                Join the community ↗
-              </Link>
-            )}
-          </div>
-          <div className="hero-proof">
-            <div className="proof-avatars">
-              <span>J</span>
-              <span>M</span>
-              <span>A</span>
-              <span>+</span>
-            </div>
-            <span>Made for readers and makers</span>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="visual-card visual-card-back">
-            <span className="visual-small">IDEAS IN PROGRESS</span>
-            <div className="visual-squiggle">〰</div>
-          </div>
-
-          <div className="visual-card visual-card-front">
-            <div className="visual-topline">
-              <span className="visual-dot" /> THE DAILY NOTE
-            </div>
-
-            <div className="visual-big">
-              Make
-              <br />
-              space for
-              <br />
-              <i>curiosity.</i>
-            </div>
-
-            <div className="visual-footer">
-              <span>WORDS THAT STICK</span>
-              <span>✳</span>
-            </div>
-          </div>
-
-          <span className="floating-star star-a">✳</span>
-          <span className="floating-star star-b">✴</span>
-          <span className="visual-caption">YOUR NEXT GOOD READ IS HERE ↗</span>
-        </div>
-      </section>
-      <section className="stories-section" id="stories">
-        <div className="section-heading">
-          <div>
-            <div className="eyebrow">THE READING ROOM</div>
-
-            <h2>
-              Fresh from the community
-              <span className="heading-period">.</span>
-            </h2>
-
-            <p>
-              New perspectives, useful lessons, and stories worth your time.
-            </p>
-          </div>
-
-          <span className="story-count">
-            {pagination.totalBlogs ?? 0} STORIES
-          </span>
-        </div>
-
-        <div className="toolbar">
-          <form className="search-form" onSubmit={submitSearch}>
-            <span className="search-icon">⌕</span>
-
+          <form className="search-form hero-search glass-search" onSubmit={submitSearch}>
+            <span className="search-icon" aria-hidden="true">⌕</span>
             <input
               value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search stories, ideas, topics…"
+              onChange={(event) => {
+                const value = event.target.value;
+                setSearchInput(value);
+                setPage(1);
+                setSearch(value.trim());
+              }}
+              placeholder="Search stories, ideas, topics..."
               aria-label="Search stories"
             />
-
             <button type="submit">Search</button>
           </form>
 
-          <label className="sort-select">
-            <span>Sort by</span>
+        
+        </div>
 
-            <select
-              value={sort}
-              onChange={(event) => {
-                setPage(1);
-                setSort(event.target.value);
-              }}
+        <div className="hero-visual glass-hero-visual" aria-label="Share your knowledge with the world">
+          <div className="glass-orb glass-orb-a" />
+          <div className="glass-orb glass-orb-b" />
+          <div className="glass-orb glass-orb-c" />
+          <div className="write-story-glass-card">
+            <div className="write-story-inner">
+              <div className="write-story-icon" aria-hidden="true">↗</div>
+              <h2>Write<br />Your Story</h2>
+              <p>Share your knowledge<br />with the world</p>
+            </div>
+            <Link
+              to={user ? "/create" : "/register"}
+              className="write-story-arrow"
+              aria-label={user ? "Write a story" : "Join BlogHub"}
             >
-              <option value="newest">Latest first</option>
-              <option value="oldest">Oldest first</option>
+              ›
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="stories-section glass-stories" id="stories">
+        <div className="section-heading glass-section-heading">
+          <div>
+            <div className="glass-section-kicker">LATEST</div>
+            <h2>Latest Stories</h2>
+          </div>
+          <label className="sort-select glass-sort-select">
+            <span>Sort by</span>
+            <select value={sort} onChange={(event) => { setPage(1); setSort(event.target.value); }}>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
             </select>
           </label>
         </div>
@@ -213,43 +135,26 @@ export default function Home() {
         {loading ? (
           <Loading />
         ) : error ? (
-          <ErrorMessage
-            message={error}
-            onRetry={() => {
-              setLoading(true);
-              setRetryCount((count) => count + 1);
-            }}
-          />
+          <ErrorMessage message={error} onRetry={() => {
+            setLoading(true);
+            setRetryCount((count) => count + 1);
+          }} />
         ) : blogs.length > 0 ? (
           <>
-            <div className="blog-grid">
-              {blogs.map((blog, index) => (
-                <BlogCard key={blog._id} blog={blog} index={index} />
-              ))}
+            <div className="blog-grid glass-blog-grid">
+              {blogs.map((blog, index) => <BlogCard key={blog._id} blog={blog} index={index} />)}
             </div>
-
             <Pagination pagination={pagination} onPageChange={setPage} />
           </>
         ) : (
-          <div className="empty-state">
+          <div className="empty-state glass-empty-state">
             <span>✳</span>
-
             <h3>No stories found just yet.</h3>
-
-            <p>
-              {search
-                ? `Nothing matched “${search}”. Try another search.`
-                : "Be the first to put an idea into the world."}
-            </p>
-
-            {user && (
-              <Link to="/create" className="button button-primary">
-                Write the first story ↗
-              </Link>
-            )}
+            <p>{search ? `Nothing matched “${search}”. Try another search.` : "Be the first to put an idea into the world."}</p>
+            {user && <Link to="/create" className="button button-primary">Write the first story ↗</Link>}
           </div>
         )}
       </section>
-    </div>
+    </main>
   );
 }

@@ -22,7 +22,7 @@ router.get("/mine", authMiddleware, controller.getMyBlogs);
 
 router.get("/:id", optionalAuthMiddleware, controller.getBlogById);
 
-// Like and unlike require authentication.
+
 router.post("/:id/like", authMiddleware, controller.likeBlog);
 
 router.delete("/:id/like", authMiddleware, controller.unlikeBlog);

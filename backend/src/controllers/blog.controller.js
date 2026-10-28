@@ -58,16 +58,16 @@ async function getAllBlogs(req, res, next) {
     const sortOption = req.query.sort === "oldest" ? "oldest" : "newest";
 
     const filter = {};
-
     if (search) {
-      const safe = escapeRegex(search);
+      const searchTerms = search.split(/\s+/).filter(Boolean).map(escapeRegex);
 
-      filter.$or = [
-        { title: { $regex: safe, $options: "i" } },
-        { content: { $regex: safe, $options: "i" } },
-      ];
+      filter.$and = searchTerms.map((term) => ({
+        $or: [
+          { title: { $regex: term, $options: "i" } },
+          { content: { $regex: term, $options: "i" } },
+        ],
+      }));
     }
-
     const [blogs, totalBlogs] = await Promise.all([
       blogModel
         .find(filter)
