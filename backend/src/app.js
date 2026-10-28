@@ -8,16 +8,22 @@ const userRoutes = require("./routes/user.routes");
 const { errorHandler } = require("./middleware/error.middleware");
 
 const app = express();
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://blog-hub-liart.vercel.app",
+  ...(process.env.CLIENT_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+];
 
-app.disable("x-powered-by");
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin))
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
+      }
+
       return callback(new Error("Origin is not allowed by CORS"));
     },
     credentials: true,
@@ -26,8 +32,6 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-// Lightweight per-process throttling for login and registration endpoints.
-// For multi-instance production deployments, use a shared store (e.g. Redis).
 const authAttempts = new Map();
 function authRateLimit(req, res, next) {
   const now = Date.now();
@@ -45,11 +49,9 @@ function authRateLimit(req, res, next) {
       "Retry-After",
       String(Math.ceil((windowMs - (now - entry.start)) / 1000)),
     );
-    return res
-      .status(429)
-      .json({
-        message: "Too many authentication attempts. Please try again later.",
-      });
+    return res.status(429).json({
+      message: "Too many authentication attempts. Please try again later.",
+    });
   }
   // Keep the map bounded and remove expired entries occasionally.
   if (authAttempts.size > 5000) {
@@ -65,7 +67,6 @@ app.use("/api/auth/register", authRateLimit);
 app.get("/api/health", (_req, res) =>
   res.json({ status: "ok", service: "BlogHub API" }),
 );
-
 
 let dbConnectionPromise;
 
