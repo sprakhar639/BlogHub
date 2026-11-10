@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/auth-context";
 
 export default function Navbar() {
@@ -11,9 +11,13 @@ export default function Navbar() {
 
   const { user, loading, logout } = auth;
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isRegisterPage = location.pathname === "/register";
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem("bloghub-theme") === "dark"
+    () => localStorage.getItem("bloghub-theme") === "dark",
   );
 
   useEffect(() => {
@@ -29,7 +33,9 @@ export default function Navbar() {
     }
 
     function closeMenuOnEscape(event) {
-      if (event.key === "Escape") setMenuOpen(false);
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
     }
 
     document.addEventListener("click", closeMenuOnOutsideClick);
@@ -65,9 +71,11 @@ export default function Navbar() {
           <NavLink to="/" end onClick={() => setMenuOpen(false)}>
             Discover
           </NavLink>
+
           <a href="/#stories" onClick={() => setMenuOpen(false)}>
             Blogs
           </a>
+
           {!loading && user && (
             <NavLink to="/create" onClick={() => setMenuOpen(false)}>
               Write a story <span className="nav-plus">＋</span>
@@ -91,6 +99,7 @@ export default function Navbar() {
                 <span className="avatar">
                   {user.username?.[0]?.toUpperCase() || "U"}
                 </span>
+
                 <span className="profile-chevron" aria-hidden="true">
                   ⌄
                 </span>
@@ -111,7 +120,9 @@ export default function Navbar() {
                     role="menuitem"
                     onClick={() => setMenuOpen(false)}
                   >
-                    <span className="dropdown-icon" aria-hidden="true">♙</span>
+                    <span className="dropdown-icon" aria-hidden="true">
+                      ♙
+                    </span>
                     <span>My Profile</span>
                   </Link>
 
@@ -121,7 +132,9 @@ export default function Navbar() {
                     role="menuitem"
                     onClick={() => setMenuOpen(false)}
                   >
-                    <span className="dropdown-icon" aria-hidden="true">▤</span>
+                    <span className="dropdown-icon" aria-hidden="true">
+                      ▤
+                    </span>
                     <span>My Blogs</span>
                   </Link>
 
@@ -145,7 +158,9 @@ export default function Navbar() {
                     role="menuitem"
                     onClick={handleLogout}
                   >
-                    <span className="dropdown-icon" aria-hidden="true">⇥</span>
+                    <span className="dropdown-icon" aria-hidden="true">
+                      ⇥
+                    </span>
                     <span>Log out</span>
                   </button>
                 </div>
@@ -156,9 +171,15 @@ export default function Navbar() {
               <Link className="login-link" to="/login">
                 Log in
               </Link>
-              <Link className="button button-primary button-small" to="/register">
-                Get started <span>↗</span>
-              </Link>
+
+              {!isRegisterPage && (
+                <Link
+                  className="button button-primary button-small"
+                  to="/register"
+                >
+                  Get started <span>↗</span>
+                </Link>
+              )}
             </>
           )}
         </div>
