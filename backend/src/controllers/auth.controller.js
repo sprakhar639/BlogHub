@@ -2,7 +2,7 @@ const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const cookieOptions = () => ({
+res.cookie("token", token, {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "none",
